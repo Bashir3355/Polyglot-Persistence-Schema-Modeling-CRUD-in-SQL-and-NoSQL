@@ -1,0 +1,9 @@
+{
+  "name": "week05-database-crud",
+  "version": "1.0.0",
+  "description": "Polyglot persistence: Projects & Tasks in PostgreSQL and MongoDB",
+  "main": "src/server.js",
+  "scripts": { "start": "node src/server.js", "qa": "node scripts/qa.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "express": "^4.19.2", "mongodb": "^6.8.0", "pg": "^8.12.0" }
+}

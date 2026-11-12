@@ -1,0 +1,11 @@
+# Video script (target 6:00–6:30; must land between 5:00 and 7:00). Webcam + screen both visible.
+Setup before recording: `docker compose down -v && docker compose up -d`, `npm start`, open: UI, DevTools (Network), psql terminal, mongosh/Compass, README ER diagram. Look at the camera when speaking intros/conclusions.
+
+**0:00–1:30 Architecture & AI audit** – "Hi, I'm ___. Domain: Projects and Tasks." Show ER diagram beside the JSON document. Explain 3NF in one sentence and why tasks are embedded in Mongo. **Name one concrete flaw you caught** in the AI draft (e.g., missing FK index / no status CHECK / Mongo validator absent / refs instead of embedding) and show the line you fixed. Show the exact prompt in README.
+
+**1:30–3:30 SQL CRUD & constraints** – UI engine = PostgreSQL. Create project → add task (watch terminal: parameterized `$1,$2`). In psql: `SELECT * FROM projects; SELECT * FROM tasks;`. Update task status in UI → re-run SELECT. **Negative test:** 
+`curl -i -X POST localhost:3000/api/sql/projects/00000000-0000-4000-8000-000000000000/tasks -H 'content-type: application/json' -d '{"title":"orphan"}'` → 409; also show psql: `INSERT INTO tasks(project_id,title) VALUES (gen_random_uuid(),'x');` → FK error. Delete the project → `SELECT count(*) FROM tasks WHERE project_id='…'` = 0 (cascade).
+
+**3:30–5:15 NoSQL CRUD & comparison** – Engine = MongoDB. Create project + tasks. In mongosh: `db.projects.find().pretty()` – one document, tasks inside. `GET /api/mongo/projects/:id` in DevTools: one request, no joins. Show atomic update: change task status (positional `$`), add a task (`$push`), delete a task (`$pull`), then delete project → `db.projects.countDocuments()`. Compare: SQL = JOIN + FK enforcement; Mongo = one read, app-enforced integrity.
+
+**5:15–6:30 QA & takeaways** – Run `npm run qa` on screen (all PASS). Flash README QA table, DevTools Network (200/201/400/404/409), desktop vs mobile viewport, empty and very long input. **Heuristic:** choose SQL when entities are shared/queried across many axes and integrity matters (orders, payments); choose document store when data is read as a self-contained aggregate with bounded children (project + tasks, profile + feed). Thank you.

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Polyglot Projects &amp; Tasks</title>
+<style>
+ body{font:16px system-ui,sans-serif;margin:0;padding:1rem;max-width:900px;margin-inline:auto;color:#222}
+ .row{display:flex;gap:.5rem;flex-wrap:wrap;margin:.5rem 0}
+ input,select,button{padding:.5rem;font:inherit;min-width:0;flex:1 1 160px}
+ button{flex:0 0 auto;cursor:pointer}
+ .card{border:1px solid #ccc;border-radius:8px;padding:.75rem;margin:.75rem 0}
+ .card h3,.task span{overflow-wrap:anywhere;word-break:break-word}
+ .task{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;border-top:1px solid #eee;padding:.4rem 0}
+ .task span{flex:1 1 200px} #msg{color:#b00020;min-height:1.2em}
+</style></head><body>
+<h1>Projects &amp; Tasks</h1>
+<div class="row"><label>Engine
+ <select id="engine"><option value="sql">PostgreSQL (SQL)</option><option value="mongo">MongoDB (NoSQL)</option></select></label></div>
+<div class="row"><input id="pname" maxlength="120" placeholder="Project name"><input id="pdesc" maxlength="2000" placeholder="Description">
+ <button id="addP">Add project</button></div>
+<p id="msg" role="alert"></p><div id="list"></div>
+<script>
+const $=(i)=>document.getElementById(i), api=()=>`/api/${$('engine').value}`;
+async function call(m,p,b){const r=await fetch(api()+p,{method:m,headers:{'content-type':'application/json'},body:b?JSON.stringify(b):undefined});
+ const t=await r.text(), d=t?JSON.parse(t):null; if(!r.ok){$('msg').textContent=`${r.status}: ${d.error}`;throw 0} $('msg').textContent='';return d}
+const el=(t,o={},...k)=>{const e=document.createElement(t);Object.assign(e,o);e.append(...k);return e};
+async function load(){const ps=await call('GET','/projects'), list=$('list'); list.replaceChildren();
+ for(const p of ps){const c=el('div',{className:'card'},el('h3',{textContent:p.name}),el('small',{textContent:p.description||''}));
+  const del=el('button',{textContent:'Delete project',onclick:async()=>{await call('DELETE','/projects/'+p.id);load()}});
+  const rename=el('button',{textContent:'Rename',onclick:async()=>{const n=prompt('New name',p.name);if(n!==null){await call('PATCH','/projects/'+p.id,{name:n}).catch(()=>{});load()}}});
+  c.append(el('div',{className:'row'},rename,del));
+  for(const t of p.tasks){const s=el('select',{onchange:async()=>{await call('PATCH',`/projects/${p.id}/tasks/${t.id}`,{status:s.value});load()}});
+   for(const v of ['todo','in_progress','done'])s.append(el('option',{value:v,textContent:v,selected:v===t.status}));
+   c.append(el('div',{className:'task'},el('span',{textContent:t.title}),s,el('button',{textContent:'✕',onclick:async()=>{await call('DELETE',`/projects/${p.id}/tasks/${t.id}`);load()}})))}
+  const ti=el('input',{maxLength:200,placeholder:'New task title'});
+  c.append(el('div',{className:'row'},ti,el('button',{textContent:'Add task',onclick:async()=>{await call('POST',`/projects/${p.id}/tasks`,{title:ti.value}).catch(()=>{});load()}})));
+  list.append(c)}}
+$('addP').onclick=async()=>{await call('POST','/projects',{name:$('pname').value,description:$('pdesc').value}).catch(()=>{});$('pname').value='';load()};
+$('engine').onchange=load; load().catch(()=>{});
+</script></body></html>
